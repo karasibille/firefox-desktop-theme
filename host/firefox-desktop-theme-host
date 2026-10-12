@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Native messaging host of the Desktop theme extension.
+
+Sends the Firefox theme written by the dotfiles' bin/theme to the extension
+when Firefox starts it, then again each time the file changes. Exits when
+Firefox closes stdin.
+"""
+import json
+import os
+import struct
+import sys
+import threading
+from pathlib import Path
+
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state")) / "theme"
+THEME = STATE / "firefox.json"
+POLL = 0.5
+
+
+def read():
+    try:
+        return THEME.read_bytes()
+    except OSError:
+        return None
+
+
+def send(data):
+    try:
+        message = json.dumps(json.loads(data)).encode()
+    except ValueError as error:
+        print(f"firefox-desktop-theme-host: {THEME}: {error}", file=sys.stderr)
+        return
+    sys.stdout.buffer.write(struct.pack("=I", len(message)) + message)
+    sys.stdout.buffer.flush()
+
+
+def main():
+    closed = threading.Event()
+
+    def wait_for_eof():
+        # The extension sends nothing: read until Firefox closes stdin
+        while sys.stdin.buffer.read(4096):
+            pass
+        closed.set()
+
+    threading.Thread(target=wait_for_eof, daemon=True).start()
+    sent = None
+    while True:
+        data = read()
+        if data and data != sent:
+            send(data)
+            sent = data
+        if closed.wait(POLL):
+            return
+
+
+if __name__ == "__main__":
+    main()

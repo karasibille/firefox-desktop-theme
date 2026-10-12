@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Lint (addons-linter, as on addons.mozilla.org)
+        run: npx --yes web-ext@10.7.0 lint --warnings-as-errors
+
+      - name: Build
+        run: npx --yes web-ext@10.7.0 build --overwrite-dest
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: desktop-theme-xpi
+          path: web-ext-artifacts/*.zip
+
+  host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: shellcheck
+        run: shellcheck install.sh
+
+      - name: ruff
+        run: pipx run ruff==0.16.10 check host/firefox-desktop-theme-host
