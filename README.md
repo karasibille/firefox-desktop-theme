@@ -39,16 +39,11 @@ this clone, so keep it in place):
 ./install.sh
 ```
 
-Then install the extension. Release Firefox only installs signed add-ons for
-good; sign it once as unlisted (not public, signed automatically) with an AMO
-API key ([addons.mozilla.org/developers/addon/api/key](https://addons.mozilla.org/developers/addon/api/key/)):
-
-```sh
-npx web-ext sign --channel=unlisted --api-key=… --api-secret=…
-```
-
-and open the `.xpi` from `web-ext-artifacts/` in Firefox. Disable laser or
-nord in `about:addons` if they are installed.
+Then download `desktop-theme-<version>.xpi` from the
+[latest release](https://github.com/karasibille/firefox-desktop-theme/releases/latest),
+open it in Firefox and confirm. Disable laser or nord in `about:addons` if
+they are installed. An unlisted add-on does not update itself: install the
+new `.xpi` after a release.
 
 To try it without signing: `about:debugging#/runtime/this-firefox`,
 **Load Temporary Add-on…**, pick `manifest.json`. It stays until Firefox
@@ -62,6 +57,24 @@ npx web-ext build    # web-ext-artifacts/desktop_theme-<version>.zip
 ```
 
 The host and `install.sh` stay out of the package (`web-ext-config.mjs`).
+
+## Release
+
+Release Firefox only installs add-ons signed by addons.mozilla.org. Raise
+`version` in `manifest.json`, commit, then push a tag with that version:
+
+```sh
+git tag v1.1 && git push origin v1.1
+```
+
+The release workflow checks that the tag matches the manifest, lints, signs
+the extension as unlisted (signed automatically, not published on AMO) and
+creates a GitHub release with `desktop-theme-<version>.xpi`. It needs an AMO
+API key ([addons.mozilla.org/developers/addon/api/key](https://addons.mozilla.org/developers/addon/api/key/))
+in the repository secrets `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`.
+
+The add-on ID in `browser_specific_settings` must stay the same, or AMO
+treats the upload as another add-on.
 
 ## License
 
